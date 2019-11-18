@@ -1,0 +1,19 @@
+---
+title: "p8105_hw6_mfc2162"
+author: "Madeline Cannon"
+date: "11/17/2019"
+output: github_document
+---
+
+```{r}
+
+library(tidyverse)
+
+```
+
+
+```{r}
+
+birthweight = read_csv("./data/birthweight.csv")
+
+```
