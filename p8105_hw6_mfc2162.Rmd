@@ -11,6 +11,9 @@ library(tidyverse)
 
 ```
 
+# Problem 1
+
+## Load and clean data
 
 ```{r}
 
@@ -22,12 +25,169 @@ birthweight = read_csv("./data/birthweight.csv") %>%
                                           "4" = "Puerto Rican",
                                           "8" = "Other",
                                           "9" = "Unknown"))) %>%
+  mutate(frace = relevel(frace, "White")) %>%
   mutate(malform = as.factor(recode(malform, "0" = "absent", "1" = "present"))) %>%
   mutate(mrace = as.factor(recode(mrace, "1" = "White",
                                           "2" = "Black",
                                           "3" = "Asian",
                                           "4" = "Puerto Rican",
                                           "8" = "Other",
-                                          "9" = "Unknown")))
+                                          "9" = "Unknown"))) %>%
+  mutate(mrace = relevel(mrace, "White"))
 
 ```
+
+
+## Build model
+
+Birthweight is continuous, so I'll use a linear regression model.
+
+#### Univariate analyses
+
+First I'll do univariate analyses for each variable. I'll also plot continous variables against birthweight to check if the association is linear and if there are outliers.
+
+```{r}
+
+#babysex
+fit = lm(bwt ~ babysex, data = birthweight)
+summary(fit)
+
+#bhead
+fit = lm(bwt ~ bhead, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=bhead, y=bwt)) + geom_point() + geom_smooth()
+#Remove outlier
+birthweight = birthweight %>% filter(!(bwt == 2807 & bhead == 22))
+
+#blength
+fit = lm(bwt ~ blength, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=blength, y=bwt)) + geom_point() + geom_smooth()
+#Remove outlier
+birthweight = birthweight %>% filter(!(bwt == 3459 & blength == 20))
+
+#delweight
+fit = lm(bwt ~ delwt, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=delwt, y=bwt)) + geom_point() + geom_smooth()
+
+#fincome
+fit = lm(bwt ~ fincome, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=fincome, y=bwt)) + geom_point() + geom_smooth()
+
+#frace
+fit = lm(bwt ~ frace, data = birthweight)
+summary(fit)
+
+#gaweeks
+fit = lm(bwt ~ gaweeks, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=gaweeks, y=bwt)) + geom_point() + geom_smooth()
+
+#malform
+fit = lm(bwt ~ malform, data = birthweight)
+summary(fit)
+#p > 0.25, don't include in multivariable model
+
+#menarche
+fit = lm(bwt ~ menarche, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=menarche, y=bwt)) + geom_point() + geom_smooth()
+#Remove impossible observations
+birthweight = birthweight %>% filter(!(menarche == 0 | menarche == 5))
+
+#mheight
+fit = lm(bwt ~ mheight, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=mheight, y=bwt)) + geom_point() + geom_smooth()
+
+#momage
+fit = lm(bwt ~ momage, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=momage, y=bwt)) + geom_point() + geom_smooth()
+
+#mrace
+fit = lm(bwt ~ mrace, data = birthweight)
+summary(fit)
+
+#parity
+fit = lm(bwt ~ parity, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=parity, y=bwt)) + geom_point() + geom_smooth()
+#p > 0.25, don't include in multivariable model
+
+#pnumlbw
+fit = lm(bwt ~ pnumlbw, data = birthweight)
+summary(fit)
+#NA, all observations = 0
+
+#pnumgsa
+fit = lm(bwt ~ pnumsga, data = birthweight)
+summary(fit)
+#NA, all observations = 0
+
+#ppbmi
+fit = lm(bwt ~ ppbmi, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=ppbmi, y=bwt)) + geom_point() + geom_smooth()
+
+#ppwt
+fit = lm(bwt ~ ppwt, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=ppwt, y=bwt)) + geom_point() + geom_smooth()
+
+#smoken
+fit = lm(bwt ~ smoken, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=smoken, y=bwt)) + geom_point() + geom_smooth()
+
+#wtgain
+fit = lm(bwt ~ wtgain, data = birthweight)
+summary(fit)
+#Check for linearity and outliers
+ggplot(data=birthweight, aes(x=wtgain, y=bwt)) + geom_point() + geom_smooth()
+
+```
+
+
+#### Multivariable model building
+
+I will exclude malform and parity from the model because their p-values were > 0.25 in the univariate analyses. pnumlbw and pnumsgsa had the same value for all observations, so I'll exclude them as well.
+
+Delivery weight can be calculated directly from pre-pregnancy weight and weight gain, so these variables will be collinear. Similarly, pre-pregnancy bmi can be calculated directly from pre-pregnancy weight and height. To avoid collinearity, I'll exclude ppwt, wtgain, and mheight. I'll keep delwt and ppbmi because they will give the same information using one degree of freedom each instead of two.
+
+I'll start with all the other variables and remove them one at a time based on their p-values until all p-values are < 0.10.
+
+```{r}
+
+fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + menarche + momage + mrace + ppbmi + smoken, data = birthweight)
+summary(fit)
+
+#Remove momage
+fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + menarche + mrace + ppbmi + smoken, data = birthweight)
+summary(fit)
+
+#Remove menarche
+fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + mrace + ppbmi + smoken, data = birthweight)
+summary(fit)
+
+#Remove frace
+fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mrace + ppbmi + smoken, data = birthweight)
+summary(fit)
+
+```
+
+The final model includes baby's sex, baby's head circumference, baby's length, mother's delivery weight, family income, gestational age, mother's race, mother's pre-pregnancy BMI, and average number of cigarettes smoked per day.
