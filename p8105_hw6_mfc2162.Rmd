@@ -42,6 +42,8 @@ birthweight = read_csv("./data/birthweight.csv") %>%
 
 Birthweight is continuous, so I'll use a linear regression model.
 
+Delivery weight can be directly calculated using pre-pregnancy weight and weight gain, so these three variables will be collinear. Similarly, pre-pregnancy BMI can be directly calculated using pre-pregnancy weight and height. To avoid collinearity, I will only include delivery weight and pre-pregancy BMI, since I believe these two variables will provide the most useful information for predicting birthweight.
+
 #### Univariate analyses
 
 First I'll do univariate analyses for each variable. I'll also plot continous variables against birthweight to check if the association is linear and if there are outliers.
@@ -59,6 +61,8 @@ summary(fit)
 ggplot(data=birthweight, aes(x=bhead, y=bwt)) + geom_point() + geom_smooth()
 #Remove outlier
 birthweight = birthweight %>% filter(!(bwt == 2807 & bhead == 22))
+#Check linearity again
+ggplot(data=birthweight, aes(x=bhead, y=bwt)) + geom_point() + geom_smooth()
 
 #blength
 fit = lm(bwt ~ blength, data = birthweight)
@@ -67,12 +71,20 @@ summary(fit)
 ggplot(data=birthweight, aes(x=blength, y=bwt)) + geom_point() + geom_smooth()
 #Remove outlier
 birthweight = birthweight %>% filter(!(bwt == 3459 & blength == 20))
+#Check linearity again
+ggplot(data=birthweight, aes(x=blength, y=bwt)) + geom_point() + geom_smooth()
 
-#delweight
+#delwt
 fit = lm(bwt ~ delwt, data = birthweight)
 summary(fit)
 #Check for linearity and outliers
 ggplot(data=birthweight, aes(x=delwt, y=bwt)) + geom_point() + geom_smooth()
+#Not linear, use categorical variable
+birthweight = birthweight %>%
+  mutate(delwt_cat = cut(delwt, c(85, 115, 135, 155, 335))) %>%
+  mutate(delwt_cat = relevel(delwt_cat, "(135,155]"))
+fit = lm(bwt ~ delwt_cat, data = birthweight)
+summary(fit)
 
 #fincome
 fit = lm(bwt ~ fincome, data = birthweight)
@@ -89,6 +101,13 @@ fit = lm(bwt ~ gaweeks, data = birthweight)
 summary(fit)
 #Check for linearity and outliers
 ggplot(data=birthweight, aes(x=gaweeks, y=bwt)) + geom_point() + geom_smooth()
+#Not linear, use categorical variable
+birthweight = birthweight %>%
+  mutate(gaweeks_cat = cut(gaweeks, c(17, 30, 35, 40, 52))) %>%
+  mutate(gaweeks_cat = relevel(gaweeks_cat, "(35,40]"))
+fit = lm(bwt ~ gaweeks_cat, data = birthweight)
+summary(fit)
+#Categorical has lower adjusted R-squared, keep linear version
 
 #malform
 fit = lm(bwt ~ malform, data = birthweight)
@@ -102,18 +121,20 @@ summary(fit)
 ggplot(data=birthweight, aes(x=menarche, y=bwt)) + geom_point() + geom_smooth()
 #Remove impossible observations
 birthweight = birthweight %>% filter(!(menarche == 0 | menarche == 5))
-
-#mheight
-fit = lm(bwt ~ mheight, data = birthweight)
-summary(fit)
-#Check for linearity and outliers
-ggplot(data=birthweight, aes(x=mheight, y=bwt)) + geom_point() + geom_smooth()
+#Check linearity again
+ggplot(data=birthweight, aes(x=menarche, y=bwt)) + geom_point() + geom_smooth()
 
 #momage
 fit = lm(bwt ~ momage, data = birthweight)
 summary(fit)
 #Check for linearity and outliers
 ggplot(data=birthweight, aes(x=momage, y=bwt)) + geom_point() + geom_smooth()
+#Not linear, use categorical variable
+birthweight = birthweight %>%
+  mutate(momage_cat = cut(momage, c(11, 15, 20, 35, 45))) %>%
+  mutate(momage_cat = relevel(momage_cat, "(15,20]"))
+fit = lm(bwt ~ momage_cat, data = birthweight)
+summary(fit)
 
 #mrace
 fit = lm(bwt ~ mrace, data = birthweight)
@@ -142,23 +163,16 @@ summary(fit)
 #Check for linearity and outliers
 ggplot(data=birthweight, aes(x=ppbmi, y=bwt)) + geom_point() + geom_smooth()
 
-#ppwt
-fit = lm(bwt ~ ppwt, data = birthweight)
-summary(fit)
-#Check for linearity and outliers
-ggplot(data=birthweight, aes(x=ppwt, y=bwt)) + geom_point() + geom_smooth()
-
 #smoken
 fit = lm(bwt ~ smoken, data = birthweight)
 summary(fit)
 #Check for linearity and outliers
 ggplot(data=birthweight, aes(x=smoken, y=bwt)) + geom_point() + geom_smooth()
-
-#wtgain
-fit = lm(bwt ~ wtgain, data = birthweight)
+#Not linear, use categorical variable
+birthweight = birthweight %>%
+  mutate(smoken_cat = cut(smoken, c(-1, 0, 40, 61)))
+fit = lm(bwt ~ smoken_cat, data = birthweight)
 summary(fit)
-#Check for linearity and outliers
-ggplot(data=birthweight, aes(x=wtgain, y=bwt)) + geom_point() + geom_smooth()
 
 ```
 
@@ -167,27 +181,53 @@ ggplot(data=birthweight, aes(x=wtgain, y=bwt)) + geom_point() + geom_smooth()
 
 I will exclude malform and parity from the model because their p-values were > 0.25 in the univariate analyses. pnumlbw and pnumsgsa had the same value for all observations, so I'll exclude them as well.
 
-Delivery weight can be calculated directly from pre-pregnancy weight and weight gain, so these variables will be collinear. Similarly, pre-pregnancy bmi can be calculated directly from pre-pregnancy weight and height. To avoid collinearity, I'll exclude ppwt, wtgain, and mheight. I'll keep delwt and ppbmi because they will give the same information using one degree of freedom each instead of two.
+delwt, momage, and smoken were not linearly associated with birthweight, so I created categorical versions to use instead.
 
-I'll start with all the other variables and remove them one at a time based on their p-values until all p-values are < 0.10.
+I'll start with all the remaining variables and remove them one at a time based on their p-values until all p-values are < 0.10.
 
 ```{r}
 
-fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + menarche + momage + mrace + ppbmi + smoken, data = birthweight)
-summary(fit)
-
-#Remove momage
-fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + menarche + mrace + ppbmi + smoken, data = birthweight)
-summary(fit)
-
-#Remove menarche
-fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + mrace + ppbmi + smoken, data = birthweight)
+fit = lm(bwt ~ babysex + bhead + blength + delwt_cat + fincome + frace + gaweeks + menarche + momage_cat + mrace + ppbmi + smoken_cat, data = birthweight)
 summary(fit)
 
 #Remove frace
-fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mrace + ppbmi + smoken, data = birthweight)
+fit = lm(bwt ~ babysex + bhead + blength + delwt_cat + fincome + gaweeks + menarche + momage_cat + mrace + ppbmi + smoken_cat, data = birthweight)
+summary(fit)
+
+#Remove menarche
+fit = lm(bwt ~ babysex + bhead + blength + delwt_cat + fincome + gaweeks + momage_cat + mrace + ppbmi + smoken_cat, data = birthweight)
+summary(fit)
+
+#Collapse smoken categories
+birthweight = birthweight %>%
+  mutate(smoken_cat = cut(smoken, c(-1, 0, 61)))
+fit = lm(bwt ~ babysex + bhead + blength + delwt_cat + fincome + gaweeks + momage_cat + mrace + ppbmi + smoken_cat, data = birthweight)
+summary(fit)
+
+#Collapse momage categories
+birthweight = birthweight %>%
+  mutate(momage_cat = cut(momage, c(11, 15, 35, 45))) %>%
+  mutate(momage_cat = relevel(momage_cat, "(15,35]"))
+fit = lm(bwt ~ babysex + bhead + blength + delwt_cat + fincome + gaweeks + momage_cat + mrace + ppbmi + smoken_cat, data = birthweight)
 summary(fit)
 
 ```
 
-The final model includes baby's sex, baby's head circumference, baby's length, mother's delivery weight, family income, gestational age, mother's race, mother's pre-pregnancy BMI, and average number of cigarettes smoked per day.
+All remaining continuous variables have p-values < 0.10 and all remaining categorical variables have at least one category with p < 0.10.
+
+The final model includes baby's sex, baby's head circumference, baby's length, mother's delivery weight (categorical), family income, gestational age (categorical), mother's age (categorical), mother's race, mother's pre-pregnancy BMI, and average number of cigarettes smoked per day (categorical).
+
+#### Plot predictions and residuals
+
+```{r}
+
+fit = lm(bwt ~ babysex + bhead + blength + delwt_cat + fincome + gaweeks + momage_cat + mrace + ppbmi + smoken_cat, data = birthweight)
+summary(fit)
+
+birthweight = birthweight %>%
+                modelr::add_residuals(fit) %>%
+                modelr::add_predictions(fit)
+
+ggplot(data=birthweight, aes(x=pred, y=resid)) + geom_point()
+
+```
