@@ -333,7 +333,6 @@ boot_straps_tidy = pivot_wider(boot_straps_tidy,
                                values_from = "estimate")
 
 for (i in 1:5000) {
-  boot_straps_tidy[i, "sample_id"] = i
   boot_straps_broom[i, "sample_id"] = i
 }
 
@@ -372,3 +371,12 @@ ggplot(boot_straps, aes(x = r.squared)) + geom_density() + xlab("r squared")
 ```
 
 R squared is slightly left-skewed, with a mean of about 0.91.
+
+
+## 95% Confidence Intervals
+
+```{r}
+
+quantile(pull(boot_straps, log_b0_b1), probs=c(0.025, 0.975))
+
+```
