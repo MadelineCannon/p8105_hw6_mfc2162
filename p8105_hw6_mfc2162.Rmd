@@ -9,6 +9,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ```{r}
 
 library(tidyverse)
@@ -67,8 +68,6 @@ summary(fit)
 ggplot(data=birthweight, aes(x=bhead, y=bwt)) + geom_point() + geom_smooth()
 #Remove outlier
 birthweight = birthweight %>% filter(!(bwt == 2807 & bhead == 22))
-#Check linearity again
-ggplot(data=birthweight, aes(x=bhead, y=bwt)) + geom_point() + geom_smooth()
 
 #blength
 fit = lm(bwt ~ blength, data = birthweight)
@@ -77,8 +76,6 @@ summary(fit)
 ggplot(data=birthweight, aes(x=blength, y=bwt)) + geom_point() + geom_smooth()
 #Remove outlier
 birthweight = birthweight %>% filter(!(bwt == 3459 & blength == 20))
-#Check linearity again
-ggplot(data=birthweight, aes(x=blength, y=bwt)) + geom_point() + geom_smooth()
 
 #delwt
 fit = lm(bwt ~ delwt, data = birthweight)
@@ -118,16 +115,13 @@ summary(fit)
 #malform
 fit = lm(bwt ~ malform, data = birthweight)
 summary(fit)
-#p > 0.25, don't include in multivariable model
 
 #menarche
 fit = lm(bwt ~ menarche, data = birthweight)
 summary(fit)
-#Check for linearity and outliers
-ggplot(data=birthweight, aes(x=menarche, y=bwt)) + geom_point() + geom_smooth()
 #Remove impossible observations
 birthweight = birthweight %>% filter(!(menarche == 0 | menarche == 5))
-#Check linearity again
+#Check for linearity and outliers
 ggplot(data=birthweight, aes(x=menarche, y=bwt)) + geom_point() + geom_smooth()
 
 #momage
@@ -151,17 +145,14 @@ fit = lm(bwt ~ parity, data = birthweight)
 summary(fit)
 #Check for linearity and outliers
 ggplot(data=birthweight, aes(x=parity, y=bwt)) + geom_point() + geom_smooth()
-#p > 0.25, don't include in multivariable model
 
 #pnumlbw
 fit = lm(bwt ~ pnumlbw, data = birthweight)
 summary(fit)
-#NA, all observations = 0
 
 #pnumgsa
 fit = lm(bwt ~ pnumsga, data = birthweight)
 summary(fit)
-#NA, all observations = 0
 
 #ppbmi
 fit = lm(bwt ~ ppbmi, data = birthweight)
@@ -221,7 +212,7 @@ summary(fit)
 
 All remaining continuous variables have p-values < 0.10 and all remaining categorical variables have at least one category with p < 0.10.
 
-The final model includes baby's sex, baby's head circumference, baby's length, mother's delivery weight (categorical), family income, gestational age, mother's age (categorical), mother's race, mother's pre-pregnancy BMI, and average number of cigarettes smoked per day (categorical).
+The final model includes baby's sex, baby's head circumference, baby's length, mother's delivery weight (categorical), family income, gestational age, mother's age (categorical), mother's race, mother's pre-pregnancy BMI, and whether the mother smoked on average at least one cigarette per day during pregnancy (binary).
 
 #### Plot predictions and residuals
 
@@ -274,6 +265,7 @@ cv_df %>%
 ```
 
 My model is the most accurate. The third model including head circumerence, length, sex, and the interactions between them is close, while the second model containing only length and gestational age is much worse.
+
 
 # Problem 2
 
